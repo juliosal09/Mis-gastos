@@ -1,0 +1,10 @@
+{
+  "name": "Mis Gastos",
+  "short_name": "Mis Gastos",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#0f172a",
+  "lang": "es-AR",
+  "description": "Control personal de ingresos, gastos y presupuesto mensual."
+}

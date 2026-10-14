@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Mis Gastos</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    :root{
+      --bg:#f4f7fb; --card:#ffffff; --text:#0f172a; --muted:#64748b;
+      --line:#e2e8f0; --accent:#2563eb; --danger:#dc2626; --ok:#16a34a; --warn:#d97706;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{max-width:860px;margin:auto;padding:18px}
+    h1{font-size:28px;margin:4px 0 2px}
+    .sub{color:var(--muted);margin:0 0 18px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 6px 20px rgba(15,23,42,.05)}
+    .big{font-size:24px;font-weight:800;margin-top:6px}
+    .label{font-size:13px;color:var(--muted);font-weight:700}
+    .saldo.pos{color:var(--ok)} .saldo.neg{color:var(--danger)}
+    .progress{height:12px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:10px}
+    .bar{height:100%;width:0;background:var(--accent);transition:.25s}
+    .section{margin-top:14px}
+    .tabs{display:flex;gap:8px;margin:8px 0 14px}
+    button{border:0;border-radius:12px;padding:12px 14px;font-weight:800;cursor:pointer}
+    .primary{background:var(--accent);color:white}
+    .secondary{background:#e2e8f0;color:#0f172a}
+    .danger{background:#fee2e2;color:#991b1b}
+    form{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .full{grid-column:1/-1}
+    label{font-size:13px;font-weight:700;color:#475569}
+    input,select,textarea{width:100%;margin-top:5px;padding:12px;border:1px solid #cbd5e1;border-radius:11px;background:white;font:inherit}
+    textarea{min-height:76px;resize:vertical}
+    .row{display:flex;gap:8px;align-items:center;justify-content:space-between}
+    .tx{padding:12px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr auto;gap:8px}
+    .tx:last-child{border-bottom:0}
+    .tx-title{font-weight:800}
+    .tx-meta{font-size:12px;color:var(--muted)}
+    .amount{font-weight:900}
+    .expense{color:var(--danger)} .income{color:var(--ok)}
+    .pill{font-size:11px;background:#eef2ff;padding:3px 8px;border-radius:999px;color:#3730a3;display:inline-block;margin-left:4px}
+    .notice{display:none;margin-top:12px;padding:12px;border-radius:12px;font-weight:700}
+    .notice.warn{display:block;background:#fff7ed;color:#9a3412}
+    .notice.danger{display:block;background:#fef2f2;color:#991b1b}
+    .notice.ok{display:block;background:#f0fdf4;color:#166534}
+    .small{font-size:12px;color:var(--muted)}
+    @media(max-width:680px){
+      .grid{grid-template-columns:1fr}
+      form{grid-template-columns:1fr}
+      .full{grid-column:auto}
+      .wrap{padding:12px}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>💰 Mis Gastos</h1>
+  <p class="sub">Control simple de ingresos, gastos y presupuesto mensual.</p>
+
+  <div class="grid">
+    <div class="card"><div class="label">INGRESOS DEL MES</div><div id="incomeTotal" class="big income">$ 0</div></div>
+    <div class="card"><div class="label">GASTOS DEL MES</div><div id="expenseTotal" class="big expense">$ 0</div></div>
+    <div class="card"><div class="label">SALDO DEL MES</div><div id="balanceTotal" class="big saldo">$ 0</div></div>
+  </div>
+
+  <div class="card section">
+    <div class="row"><div><div class="label">PRESUPUESTO MENSUAL</div><div id="budgetText" class="big">$ 0</div></div>
+      <button class="secondary" onclick="setBudget()">Cambiar</button></div>
+    <div class="progress"><div id="budgetBar" class="bar"></div></div>
+    <div id="budgetPct" class="small" style="margin-top:7px">0% utilizado</div>
+    <div id="notice" class="notice"></div>
+  </div>
+
+  <div class="card section">
+    <div class="tabs">
+      <button id="btnExpense" class="primary" onclick="setType('expense')">➖ Gasto</button>
+      <button id="btnIncome" class="secondary" onclick="setType('income')">➕ Ingreso</button>
+    </div>
+
+    <form id="entryForm">
+      <div>
+        <label>Importe
+          <input id="amount" type="number" min="0" step="0.01" required placeholder="Ej. 25000">
+        </label>
+      </div>
+      <div>
+        <label>Fecha
+          <input id="date" type="date" required>
+        </label>
+      </div>
+      <div>
+        <label>Categoría
+          <select id="category">
+            <option>Comida</option><option>Combustible</option><option>Servicios</option>
+            <option>Tarjeta</option><option>Compras</option><option>Transferencias</option>
+            <option>Salud</option><option>Transporte</option><option>Casa</option>
+            <option>Ocio</option><option>Sueldo</option><option>Otro</option>
+          </select>
+        </label>
+      </div>
+      <div>
+        <label>Forma de pago
+          <select id="payment">
+            <option>Efectivo</option><option>Débito</option><option>Crédito</option><option>Transferencia</option>
+          </select>
+        </label>
+      </div>
+      <div class="full">
+        <label>Descripción
+          <textarea id="description" placeholder="Ej. supermercado, combustible, cuota, etc."></textarea>
+        </label>
+      </div>
+      <div class="full">
+        <button class="primary" type="submit" style="width:100%">Guardar movimiento</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card section">
+    <div class="row">
+      <div><div class="label">MOVIMIENTOS DEL MES</div><div class="small">Los datos se guardan en este dispositivo.</div></div>
+      <button class="danger" onclick="clearAll()">Borrar todo</button>
+    </div>
+    <div id="transactions" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card section">
+    <div class="row">
+      <div>
+        <div class="label">AVISOS</div>
+        <div class="small">Podés habilitar notificaciones del navegador. Las alertas de presupuesto también aparecen dentro de la app.</div>
+      </div>
+      <button class="secondary" onclick="enableNotifications()">Activar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const fmt = new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0});
+let type='expense';
+let txs = JSON.parse(localStorage.getItem('misgastos_txs')||'[]');
+let budget = Number(localStorage.getItem('misgastos_budget')||0);
+
+document.getElementById('date').value = new Date().toISOString().slice(0,10);
+
+function setType(t){
+  type=t;
+  btnExpense.className = t==='expense'?'primary':'secondary';
+  btnIncome.className = t==='income'?'primary':'secondary';
+  if(t==='income') category.value='Sueldo';
+}
+function monthKey(d){ return d.slice(0,7); }
+function currentMonth(){ return new Date().toISOString().slice(0,7); }
+
+entryForm.addEventListener('submit', e=>{
+  e.preventDefault();
+  const a=Number(amount.value);
+  if(!a || a<=0) return;
+  txs.unshift({
+    id:Date.now(), type, amount:a, date:date.value,
+    category:category.value, payment:payment.value,
+    description:description.value.trim()
+  });
+  localStorage.setItem('misgastos_txs',JSON.stringify(txs));
+  amount.value=''; description.value='';
+  render();
+  maybeNotifyLast();
+});
+
+function setBudget(){
+  const v = prompt('Ingresá tu presupuesto mensual en pesos:', budget || '');
+  if(v===null) return;
+  const n = Number(String(v).replace(/\./g,'').replace(',','.'));
+  if(!isNaN(n) && n>=0){
+    budget=n; localStorage.setItem('misgastos_budget',budget); render();
+  }
+}
+function removeTx(id){
+  txs=txs.filter(x=>x.id!==id);
+  localStorage.setItem('misgastos_txs',JSON.stringify(txs)); render();
+}
+function clearAll(){
+  if(confirm('¿Seguro que querés borrar todos los movimientos?')){
+    txs=[]; localStorage.removeItem('misgastos_txs'); render();
+  }
+}
+function monthly(){
+  const mk=currentMonth();
+  return txs.filter(x=>monthKey(x.date)===mk);
+}
+function render(){
+  const m=monthly();
+  const inc=m.filter(x=>x.type==='income').reduce((s,x)=>s+x.amount,0);
+  const exp=m.filter(x=>x.type==='expense').reduce((s,x)=>s+x.amount,0);
+  const bal=inc-exp;
+  incomeTotal.textContent=fmt.format(inc);
+  expenseTotal.textContent=fmt.format(exp);
+  balanceTotal.textContent=fmt.format(bal);
+  balanceTotal.className='big saldo '+(bal<0?'neg':'pos');
+  budgetText.textContent=budget?fmt.format(budget):'Sin definir';
+  const pct=budget?Math.round((exp/budget)*100):0;
+  budgetPct.textContent = budget ? `${pct}% utilizado · ${fmt.format(Math.max(budget-exp,0))} disponible` : 'Definí un presupuesto para activar alertas';
+  budgetBar.style.width=Math.min(pct,100)+'%';
+  budgetBar.style.background = pct>=100?'#dc2626':pct>=80?'#d97706':pct>=70?'#eab308':'#2563eb';
+
+  notice.className='notice';
+  notice.textContent='';
+  if(budget){
+    if(pct>=100){ notice.className='notice danger'; notice.textContent='⚠️ Alcanzaste o superaste el 100% de tu presupuesto mensual.'; }
+    else if(pct>=80){ notice.className='notice warn'; notice.textContent='⚠️ Ya utilizaste al menos el 80% de tu presupuesto.'; }
+    else if(pct>=70){ notice.className='notice warn'; notice.textContent='🔔 Ya utilizaste al menos el 70% de tu presupuesto.'; }
+    else { notice.className='notice ok'; notice.textContent='✅ Tus gastos están por debajo del 70% del presupuesto.'; }
+  }
+
+  transactions.innerHTML = m.length ? m.map(x=>`
+    <div class="tx">
+      <div>
+        <div class="tx-title">${escapeHtml(x.description||x.category)} <span class="pill">${escapeHtml(x.category)}</span></div>
+        <div class="tx-meta">${x.date} · ${escapeHtml(x.payment)}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="amount ${x.type}">${x.type==='expense'?'−':'+'} ${fmt.format(x.amount)}</div>
+        <button class="secondary" style="padding:5px 8px;margin-top:5px" onclick="removeTx(${x.id})">Eliminar</button>
+      </div>
+    </div>`).join('') : '<p class="small">Todavía no cargaste movimientos este mes.</p>';
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+async function enableNotifications(){
+  if(!('Notification' in window)) return alert('Este navegador no permite notificaciones.');
+  const p=await Notification.requestPermission();
+  alert(p==='granted'?'Notificaciones habilitadas.':'No se habilitaron las notificaciones.');
+}
+function maybeNotifyLast(){
+  if(Notification?.permission!=='granted') return;
+  const m=monthly(), exp=m.filter(x=>x.type==='expense').reduce((s,x)=>s+x.amount,0);
+  if(!budget) return;
+  const pct=Math.round(exp/budget*100);
+  if(pct>=100) new Notification('Mis Gastos',{body:'Alcanzaste o superaste tu presupuesto mensual.'});
+  else if(pct>=80) new Notification('Mis Gastos',{body:'Ya utilizaste al menos el 80% de tu presupuesto.'});
+  else if(pct>=70) new Notification('Mis Gastos',{body:'Ya utilizaste al menos el 70% de tu presupuesto.'});
+}
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+render();
+</script>
+</body>
+</html>
